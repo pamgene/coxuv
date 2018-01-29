@@ -1,10 +1,11 @@
 Package: coxuv
 Type: Package
 Title: Univariate Cox regression
-Version: 1.2
+Version: 1.3
 Author: Rik de Wijn
 Maintainer: The package maintainer <yourself@somewhere.net>
 Description: Univariate Cox regression for correlation of peptide signals with survival data.
 Date: 27-01-2018
-Imports:dplyr, data.table, rms
+Imports: dplyr, data.table, rms, survival
 LazyData: true
+RoxygenNote: 6.0.1

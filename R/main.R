@@ -2,6 +2,7 @@
 #' @import rms
 #' @import dplyr
 #' @import data.table
+#' @import survival
 #' @export
 
 
