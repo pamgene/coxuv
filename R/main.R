@@ -3,23 +3,19 @@
 #' @import dplyr
 #' @import data.table
 #' @import survival
-#' @export
-
-
+#' @import globaltest
+#' @import reshape2
 #' @export
 shinyServerRun = function(input, output, session, context) {
 
   output$body = renderUI({
-    tabsetPanel(
-      tabPanel("Input",
+    fluidPage(
         checkboxInput("swapcensor", "Swap censoring"),
         tableOutput("censor"),
         plotOutput("survplot"),
+        helpText("Test for global association of mesaurements with survival:"),
+        tableOutput("globocox"),
         actionButton("start", "Press to start ...")
-      ),
-      tabPanel("Result",
-        tableOutput("result")
-      )
     )
   })
 
@@ -30,13 +26,14 @@ shinyServerRun = function(input, output, session, context) {
 
     bndata = getData()
     df = bndata$data
-    df$x = df[[bndata$xAxisColumnName]]
+    df$x = as.numeric(df[[bndata$xAxisColumnName]])
 
     output$censor = renderTable({
+      if(any(is.na(df$x))) stop("Non-numeric or NA data detected for Survival Time")
       if(!bndata$hasColors) stop("Need a single data color for the censoring variable")
       if(length(bndata$colorColumnNames) > 1) stop("Need a single data color for the censoring variable")
       df = addCensor()
-      pep = subset(df, rowSeq == 1)
+      pep = subset(df, rowSeq == min(rowSeq))
       N = as.vector(summary(pep$censor))
       censorTable = data.frame(Censor = levels(pep$censor),
                         Event = c(FALSE, TRUE),
@@ -47,8 +44,15 @@ shinyServerRun = function(input, output, session, context) {
 
     output$survplot = renderPlot({
       df = addCensor()
-      fit = npsurv(df$survObj ~ 1)
+      pep = subset(df, rowSeq == min(rowSeq))
+      fit = npsurv(pep$survObj ~ 1)
       survplot(fit)
+    })
+
+    output$globocox = renderTable({
+      df = addCensor()
+      gtest = globalcox(df)
+      result = show(gtest)
     })
 
     addCensor = reactive({
@@ -68,6 +72,7 @@ shinyServerRun = function(input, output, session, context) {
     {
       df = addCensor()
       aResult = docox(df)
+      aResult = data.frame(aResult, colSeq = 1)
       nid = showNotification("Done!", duration = NULL)
       aResult = subset(aResult, select = c("rowSeq", "colSeq", "p", "plr"))
       meta = data.frame(labelDescription = c("rowSeq", "colSeq", "p", "plr"),
